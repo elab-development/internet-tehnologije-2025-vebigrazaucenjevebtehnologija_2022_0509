@@ -18,7 +18,10 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+
+    /* DODATO ZA BOLJE IMPORTE */
+    "baseUrl": "src" 
   },
   "include": [
     "src"
