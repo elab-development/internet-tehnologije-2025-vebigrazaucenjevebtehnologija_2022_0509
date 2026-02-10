@@ -1,7 +1,8 @@
-from app.db.session import engine
-from app.models.models import Base
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from app.db.session import engine
+from app.models.models import Base
+from app.api import auth, levels, admin, users
 import uvicorn
 
 
@@ -18,6 +19,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(auth.router, prefix="/auth", tags=["Autentifikacija"])
+app.include_router(levels.router, prefix="/levels", tags=["Nivoi"])
+app.include_router(admin.router, prefix="/admin", tags=["Admin Panel"])
+app.include_router(users.router, prefix="/users", tags=["User Profile"])
 
 @app.get("/")
 def root():

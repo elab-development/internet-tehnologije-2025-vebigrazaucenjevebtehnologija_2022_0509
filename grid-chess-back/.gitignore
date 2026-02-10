@@ -30,6 +30,7 @@ wheels/
 venv/
 env/
 .env/
+.env
 
 # IDE specific files (optional, adjust as needed)
 .idea/  # For PyCharm/IntelliJ
