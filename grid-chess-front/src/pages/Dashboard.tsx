@@ -63,7 +63,7 @@ const Dashboard: React.FC = () => {
               defaultLanguage="css"
               theme="vs-dark"
               value={code}
-              onChange={(value) => setCode(value)}
+              onChange={(value: string | undefined) => setCode(value || '')}
               options={{
                 fontSize: 16,
                 minimap: { enabled: false },

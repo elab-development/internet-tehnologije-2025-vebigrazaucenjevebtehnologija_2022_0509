@@ -5,6 +5,7 @@ import jwt
 from jwt.exceptions import InvalidTokenError
 from app.db.session import get_db
 from app.models import models
+from app.core.config import settings
 from app.core import security
 from app.schemas import user as user_schema
 
@@ -18,19 +19,27 @@ def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        # pyjwt koristi jwt.decode i baca InvalidTokenError
-        payload = jwt.decode(token, security.SECRET_KEY, algorithms=[security.ALGORITHM])
-        user_id: str = payload.get("sub")
-        if user_id is None:
+        # Dekodiramo token
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        
+        # Izvlačimo "sub" (to je user.id koji si stavio u login funkciji)
+        user_id_val = payload.get("sub")
+        if user_id_val is None:
             raise credentials_exception
-    except InvalidTokenError:
+            
+    except (InvalidTokenError, jwt.ExpiredSignatureError): # Ovde je bila greška (JWTError)
         raise credentials_exception
     
-    user = db.query(models.User).filter(models.User.id == user_id).first()
+    # PROVERA GUEST KORISNIKA
+    if str(user_id_val).startswith("guest_"):
+        # Vraćamo privremeni objekat korisnika koji nije u bazi
+        return models.User(username=payload.get("username"), role="guest")
+
+    # PROVERA REGISTROVANOG KORISNIKA
+    # Ovde moraš koristiti user_id_val koji smo izvukli iz tokena
+    user = db.query(models.User).filter(models.User.id == user_id_val).first()
     
     if user is None:
-        if user_id and user_id.startswith("guest_"):
-             return models.User(username=payload.get("username"), role="guest")
         raise credentials_exception
         
     return user
