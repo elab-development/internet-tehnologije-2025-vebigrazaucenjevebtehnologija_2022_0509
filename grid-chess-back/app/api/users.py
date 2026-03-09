@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Body
 from sqlalchemy.orm import Session
+from typing import Any
 from app.db.session import get_db
 from app.models import models
 from app.schemas import user as user_schema
@@ -17,22 +18,45 @@ def get_my_profile(current_user: models.User = Depends(get_current_user)):
 # --- IZMENA SOPSTVENOG PROFILA ---
 @router.put("/me", response_model=user_schema.UserOut)
 def update_my_profile(
-    user_update: user_schema.UserCreate, 
+    payload: dict = Body(...), 
     db: Session = Depends(get_db), 
     current_user: models.User = Depends(get_current_user)
 ):
-    """Korisnik menja svoje ime ili lozinku."""
-    # Provera da li je novo ime već zauzeto (ako ga menja)
-    if user_update.username != current_user.username:
-        existing = db.query(models.User).filter(models.User.username == user_update.username).first()
-        if existing:
-            raise HTTPException(status_code=400, detail="Korisničko ime je zauzeto.")
-        current_user.username = user_update.username
-
-    # Heširanje nove lozinke
-    if user_update.password:
-        current_user.password_hash = security.get_password_hash(user_update.password)
+    """
+    Korisnik menja svoje ime, lozinku ili avatar.
+    Prima sirovi JSON (dict) kako bi izbegli striktnu validaciju UserCreate šeme.
+    """
     
-    db.commit()
-    db.refresh(current_user)
+    # 1. Izmena korisničkog imena
+    new_username = payload.get("username")
+    if new_username and new_username != current_user.username:
+        # Provera da li je novo ime već zauzeto
+        existing = db.query(models.User).filter(models.User.username == new_username).first()
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, 
+                detail="Korisničko ime je zauzeto."
+            )
+        current_user.username = new_username
+
+    # 2. Izmena lozinke
+    new_password = payload.get("password")
+    if new_password: # Ako string nije prazan
+        current_user.password_hash = security.get_password_hash(new_password)
+    
+    # 3. Izmena avatara (opciono, ako kolona postoji u bazi)
+    avatar_seed = payload.get("avatar_seed")
+    if avatar_seed and hasattr(current_user, "avatar_seed"):
+        current_user.avatar_seed = avatar_seed
+    
+    try:
+        db.commit()
+        db.refresh(current_user)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+            detail="Greška pri čuvanju podataka u bazi."
+        )
+        
     return current_user
