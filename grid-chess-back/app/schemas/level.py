@@ -20,3 +20,4 @@ class LevelOut(LevelBase):
 # Sema za proveru resenja
 class LevelSolve(BaseModel):
     submitted_code: str
+    current_fen: str

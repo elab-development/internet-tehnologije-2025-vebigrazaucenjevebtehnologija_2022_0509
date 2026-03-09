@@ -18,6 +18,7 @@ class User(Base):
     username: Mapped[str] = mapped_column(String(50), unique=True, nullable=True)
     password_hash: Mapped[str] = mapped_column(Text, nullable=True)
     role: Mapped[UserRole] = mapped_column(Enum(UserRole), default=UserRole.GUEST)
+    avatar_seed: Mapped[str] = mapped_column(String(100), nullable=True, default="Felix")
 
     progress: Mapped[list["UserProgress"]] = relationship(back_populates="user")
 
