@@ -2,8 +2,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.db.session import engine
 from app.models.models import Base
-from app.api import auth, levels, admin, users
+from app.api import auth, levels, admin, users, leaderboard
 import uvicorn
+from app.models.models import Base
+from app.db.session import engine
 
 
 # Kreiranje tabela u bazi 
@@ -24,6 +26,7 @@ app.include_router(auth.router, prefix="/auth", tags=["Autentifikacija"])
 app.include_router(levels.router, prefix="/levels", tags=["Nivoi"])
 app.include_router(admin.router, prefix="/admin", tags=["Admin Panel"])
 app.include_router(users.router, prefix="/users", tags=["User Profile"])
+app.include_router(leaderboard.router, prefix="/leaderboard", tags=["leaderboard"])
 
 @app.get("/")
 def root():

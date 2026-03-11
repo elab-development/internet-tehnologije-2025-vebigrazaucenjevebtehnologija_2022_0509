@@ -8,6 +8,7 @@ from app.models import models
 from app.core.config import settings
 from app.core import security
 from app.schemas import user as user_schema
+import random
 
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
@@ -27,16 +28,20 @@ def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_
         if user_id_val is None:
             raise credentials_exception
             
-    except (InvalidTokenError, jwt.ExpiredSignatureError): # Ovde je bila greška (JWTError)
+    except (InvalidTokenError, jwt.ExpiredSignatureError):
         raise credentials_exception
     
     # PROVERA GUEST KORISNIKA
     if str(user_id_val).startswith("guest_"):
         # Vraćamo privremeni objekat korisnika koji nije u bazi
-        return models.User(username=payload.get("username"), role="guest")
+        # Dodajemo i default avatar za gosta da frontend ne bi pukao
+        return models.User(
+            username=payload.get("username"), 
+            role="guest", 
+            avatar_seed="Buddy" 
+        )
 
     # PROVERA REGISTROVANOG KORISNIKA
-    # Ovde moraš koristiti user_id_val koji smo izvukli iz tokena
     user = db.query(models.User).filter(models.User.id == user_id_val).first()
     
     if user is None:
@@ -53,10 +58,17 @@ def register(user_in: user_schema.UserCreate, db: Session = Depends(get_db)):
     
     try:
         hashed_pw = security.get_password_hash(user_in.password)
+        
+        # --- NOVO: NASUMIČAN AVATAR PRI REGISTRACIJI ---
+        # Koristimo listu seed-ova koja se poklapa sa tvojim Profile.tsx
+        starter_avatars = ['Felix', 'Aneka', 'Jack', 'Cali', 'Buddy', 'Milo', 'Leo']
+        random_avatar = random.choice(starter_avatars)
+        
         new_user = models.User(
             username=user_in.username,
             password_hash=hashed_pw,
-            role=user_in.role
+            role=user_in.role,
+            avatar_seed=random_avatar  # Upisujemo nasumičan izbor u bazu
         )
         
         db.add(new_user)
@@ -82,19 +94,21 @@ def login(db: Session = Depends(get_db), form_data: OAuth2PasswordRequestForm = 
     
     # Token sadrži ID korisnika u "sub" polju
     access_token = security.create_access_token(
-        data={"sub": str(user.id), "role": user.role, "username": user.username}
+        data={"sub": str(user.id), "role": str(user.role), "username": user.username}
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
 # --- GUEST LOGIN ---
 @router.post("/guest-login")
 def guest_login(username: str):
+    # Za gosta stavljamo fiksni ili nasumični avatar u token ako zatreba
     access_token = security.create_access_token(
         data={
             "sub": f"guest_{username}", 
             "role": "guest", 
             "username": username,
-            "is_guest": True
+            "is_guest": True,
+            "avatar_seed": "Buddy"
         }
     )
     return {
