@@ -5,7 +5,7 @@ interface ButtonProps {
   onClick?: () => void;
   type?: 'button' | 'submit';
   variant?: 'primary' | 'danger';
-  disabled?: boolean; // <-- DODATO
+  disabled?: boolean;
 }
 
 export const CustomButton: React.FC<ButtonProps> = ({ 
@@ -13,10 +13,9 @@ export const CustomButton: React.FC<ButtonProps> = ({
   onClick, 
   type = 'button', 
   variant = 'primary',
-  disabled = false // <-- DODATO podrazumevano stanje
+  disabled = false
 }) => {
   
-  // Određujemo boju: ako je disabled, biće siva, inače ide tvoja primarna ili danger boja
   const getBackgroundColor = () => {
     if (disabled) return '#555555'; 
     return variant === 'primary' ? '#769656' : '#e74c3c';
