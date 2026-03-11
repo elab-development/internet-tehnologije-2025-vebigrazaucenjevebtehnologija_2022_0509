@@ -1,155 +1,192 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api/axios';
-import { InputField } from '../components/common/InputField';
-import { CustomButton } from '../components/common/CustomButton';
 import Navbar from '../components/common/Navbar';
 
 const Profile: React.FC = () => {
-  const [username, setUsername] = useState('');
-  const [initialUsername, setInitialUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState({ type: '', text: '' });
+  // --- STATE ZA PODATKE ---
+  const [username, setUsername] = useState(''); // Trenutno ime (prikaz)
+  const [newUsername, setNewUsername] = useState(''); // Polje za unos novog imena
+  const [password, setPassword] = useState(''); // Polje za novu lozinku
+  const [message, setMessage] = useState({ text: '', type: '' }); // Poruke o uspehu/grešci
+  
+  // --- STATE ZA AVATAR ---
+  const [currentAvatar, setCurrentAvatar] = useState('Felix');
+  const avatarOptions = ['Felix', 'Aneka', 'Jack', 'Cali', 'Buddy', 'Milo', 'Leo'];
 
-  const colors = {
-    darkest: '#37353E',
-    dark: '#44444E',
-    accent: '#715A5A',
-    light: '#D3DAD9'
-  };
-
-  // 1. Učitavanje podataka prilikom ulaska na stranicu
+  // --- UČITAVANJE PODATAKA PRI POKRETANJU ---
   useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const response = await api.get('/users/me');
-        setUsername(response.data.username);
-        setInitialUsername(response.data.username);
-      } catch (err: any) {
-        console.error("Greška pri učitavanju profila", err);
-        setMessage({ type: 'error', text: 'Neuspelo učitavanje profila.' });
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProfile();
+    api.get('/users/me')
+      .then(res => {
+        setUsername(res.data.username);
+        setNewUsername(res.data.username);
+        if (res.data.avatar_seed) {
+          setCurrentAvatar(res.data.avatar_seed);
+        }
+      })
+      .catch(() => {
+        setUsername("Gost");
+        setMessage({ text: "Nije moguće učitati profil.", type: "error" });
+      });
   }, []);
 
-  // 2. Slanje izmena na backend
-  const handleUpdate = async (e: React.FormEvent) => {
+  // --- FUNKCIJA ZA SLANJE IZMENA ---
+  const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    setMessage({ type: '', text: '' });
-
-    // Validacija: ako ništa nije promenjeno
-    if (username === initialUsername && password === '') {
-      setMessage({ type: 'info', text: 'Niste uneli nikakve promene.' });
-      return;
-    }
+    setMessage({ text: '', type: '' });
 
     try {
-      // Tvoj backend koristi PUT na /users/me i očekuje UserCreate šemu
-      await api.put('/users/me', {
-        username: username,
-        password: password || "" // Šaljemo prazan string ako se lozinka ne menja
+      const response = await api.put('/users/me', { 
+        username: newUsername,
+        // Ako je lozinka prazna, šaljemo undefined da je JS ne bi uključio u JSON
+        password: password || undefined, 
+        avatar_seed: currentAvatar
       });
-
-      setInitialUsername(username);
-      setPassword(''); // Resetujemo polje za lozinku nakon uspeha
-      setMessage({ type: 'success', text: 'Profil uspešno ažuriran!' });
+      
+      // Ako je uspeh, ažuriraj lokalni prikaz
+      setUsername(response.data.username);
+      setPassword('');
+      setMessage({ text: 'Profil je uspešno ažuriran!', type: 'success' });
     } catch (err: any) {
-      const errorMsg = err.response?.data?.detail || "Greška pri ažuriranju.";
-      setMessage({ type: 'error', text: errorMsg });
+      const errorDetail = err.response?.data?.detail || 'Greška pri čuvanju izmena.';
+      setMessage({ text: errorDetail, type: 'error' });
     }
   };
 
-  if (loading) {
-    return (
-      <div style={{ backgroundColor: colors.darkest, minHeight: '100vh', color: colors.light, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-        <h2>Učitavanje...</h2>
-      </div>
-    );
-  }
+  const handleAvatarChange = (seed: string) => {
+    setCurrentAvatar(seed);
+  };
 
   return (
-    <div style={{ backgroundColor: colors.darkest, minHeight: '100vh' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#262421', color: 'white' }}>
       <Navbar />
-
-      <div style={{ padding: '60px 20px' }}>
-        <div style={{ 
-          maxWidth: '500px', 
-          margin: '0 auto', 
-          backgroundColor: colors.dark, 
-          padding: '40px', 
-          borderRadius: '15px',
-          boxShadow: '0 10px 30px rgba(0,0,0,0.4)',
-          color: colors.light 
-        }}>
-          <h2 style={{ textAlign: 'center', marginBottom: '10px' }}>👤 Moj Profil</h2>
-          <p style={{ textAlign: 'center', color: colors.accent, marginBottom: '30px', fontSize: '14px' }}>
-            Promenite svoje korisničko ime ili lozinku
-          </p>
-
-          {message.text && (
-            <div style={{ 
-              padding: '12px', 
-              borderRadius: '8px', 
-              marginBottom: '20px', 
-              textAlign: 'center',
-              fontSize: '14px',
-              backgroundColor: message.type === 'success' ? '#2e7d32' : message.type === 'info' ? '#0288d1' : '#d32f2f',
-              color: 'white'
-            }}>
-              {message.text}
-            </div>
-          )}
-          
-          <form onSubmit={handleUpdate}>
-            <InputField 
-              label="Korisničko ime" 
-              type="text" 
-              value={username} 
-              onChange={(e) => setUsername(e.target.value)} 
-            />
-            
-            <div style={{ position: 'relative' }}>
-              <InputField 
-                label="Nova lozinka (ostavi prazno ako ne menjaš)" 
-                type={showPassword ? "text" : "password"} 
-                value={password} 
-                onChange={(e) => setPassword(e.target.value)} 
-              />
-              <button 
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                style={{
-                  position: 'absolute',
-                  right: '10px',
-                  top: '38px',
-                  background: 'none',
-                  border: 'none',
-                  color: colors.accent,
-                  cursor: 'pointer',
-                  fontSize: '11px',
-                  fontWeight: 'bold'
-                }}
-              >
-                {showPassword ? "SAKRIJ" : "PRIKAŽI"}
-              </button>
-            </div>
-            
-            <div style={{ marginTop: '30px' }}>
-              <CustomButton 
-                label="Sačuvaj izmene" 
-                type="submit" 
-                disabled={username === initialUsername && password === ''}
-              />
-            </div>
-          </form>
+      
+      <div style={{ 
+        maxWidth: '600px', 
+        margin: '50px auto', 
+        padding: '30px', 
+        backgroundColor: '#312e2b', 
+        borderRadius: '15px', 
+        textAlign: 'center',
+        boxShadow: '0 4px 15px rgba(0,0,0,0.3)'
+      }}>
+        <h1 style={{ color: '#81b64c', marginBottom: '10px' }}>Tvoj Profil</h1>
+        
+        {/* Sekcija za prikaz avatara i imena */}
+        <div style={{ margin: '20px 0' }}>
+          <img 
+            src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${currentAvatar}`} 
+            alt="Avatar" 
+            style={{ 
+              width: '120px', 
+              height: '120px', 
+              borderRadius: '50%', 
+              border: '5px solid #81b64c', 
+              backgroundColor: '#454341' 
+            }}
+          />
+          <h2 style={{ marginTop: '15px', fontSize: '24px' }}>{username}</h2>
         </div>
+
+        {/* Prikaz poruka (zeleno za uspeh, crveno za grešku) */}
+        {message.text && (
+          <div style={{ 
+            padding: '10px', 
+            marginBottom: '20px', 
+            borderRadius: '5px', 
+            backgroundColor: message.type === 'success' ? 'rgba(129, 182, 76, 0.2)' : 'rgba(255, 68, 68, 0.2)',
+            color: message.type === 'success' ? '#81b64c' : '#ff4444',
+            border: `1px solid ${message.type === 'success' ? '#81b64c' : '#ff4444'}`
+          }}>
+            {message.text}
+          </div>
+        )}
+
+        {/* FORMA ZA IZMENU */}
+        <form onSubmit={handleUpdateProfile} style={{ display: 'flex', flexDirection: 'column', gap: '20px', textAlign: 'left' }}>
+          
+          {/* Izbor avatara */}
+          <div>
+            <p style={{ color: '#bababa', marginBottom: '10px', fontSize: '14px' }}>Izaberi novi avatar:</p>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              {avatarOptions.map(seed => (
+                <img 
+                  key={seed}
+                  src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${seed}`} 
+                  alt={seed}
+                  style={{ 
+                    width: '45px', 
+                    height: '45px', 
+                    borderRadius: '50%', 
+                    cursor: 'pointer',
+                    border: currentAvatar === seed ? '3px solid #81b64c' : '2px solid transparent',
+                    transition: '0.2s transform',
+                    transform: currentAvatar === seed ? 'scale(1.1)' : 'scale(1)'
+                  }}
+                  onClick={() => handleAvatarChange(seed)}
+                />
+              ))}
+            </div>
+          </div>
+
+          <hr style={{ border: '0', borderTop: '1px solid #444', margin: '10px 0' }} />
+
+          {/* Polje za korisničko ime */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <label style={{ fontSize: '14px', color: '#bababa' }}>Korisničko ime</label>
+            <input 
+              type="text" 
+              value={newUsername}
+              onChange={(e) => setNewUsername(e.target.value)}
+              style={inputStyle}
+              placeholder="Unesi novo ime"
+            />
+          </div>
+
+          {/* Polje za lozinku */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <label style={{ fontSize: '14px', color: '#bababa' }}>Nova lozinka</label>
+            <input 
+              type="password" 
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              style={inputStyle}
+              placeholder="Ostavi prazno ako ne menjaš"
+            />
+          </div>
+
+          {/* Dugme za slanje */}
+          <button type="submit" style={buttonStyle}>
+            Sačuvaj sve izmene
+          </button>
+        </form>
+
       </div>
     </div>
   );
+};
+
+// --- STILOVI ---
+const inputStyle = {
+  padding: '12px',
+  borderRadius: '8px',
+  border: '1px solid #454341',
+  backgroundColor: '#262421',
+  color: 'white',
+  fontSize: '16px',
+  outline: 'none'
+};
+
+const buttonStyle = {
+  padding: '14px',
+  marginTop: '10px',
+  borderRadius: '8px',
+  border: 'none',
+  backgroundColor: '#81b64c',
+  color: 'white',
+  fontWeight: 'bold' as const,
+  cursor: 'pointer',
+  fontSize: '16px',
+  transition: 'background-color 0.2s'
 };
 
 export default Profile;

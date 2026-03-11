@@ -30,7 +30,7 @@ const Login: React.FC<LoginProps> = ({ setToken }) => {
 
       const res = await api.post<AuthResponse>('/auth/login', formData);
       
-      // Spremamo token i obaveštavamo App state
+      // Regularan login - dobijamo pravi JWT token
       localStorage.setItem('token', res.data.access_token);
       setToken(res.data.access_token);
       
@@ -40,13 +40,13 @@ const Login: React.FC<LoginProps> = ({ setToken }) => {
     }
   };
 
-  // KLJUČNA IZMENA: Gost ulazi bez tokena
+  // IZMENA: Gost dobija "guest-mode" string kao propusnicu
   const handleGuestLogin = () => {
-    // Čistimo sve tragove prethodnih sesija
-    localStorage.removeItem('token');
-    setToken(""); 
+    const guestToken = "guest-mode";
     
-    // Šaljemo ga na dashboard kao gosta (bez prava pristupa profilu/leaderboardu)
+    // Spremamo u localStorage i obaveštavamo App.tsx state
+    localStorage.setItem('token', guestToken);
+    setToken(guestToken); 
     navigate('/dashboard');
   };
 
