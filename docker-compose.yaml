@@ -1,0 +1,41 @@
+services:
+  db:
+    image: postgres:15
+    container_name: chess_db
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=chess_grid
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - chess-net
+
+  chess_backend:
+    build: ./grid-chess-back
+    container_name: chess_backend
+    env_file:
+      - ./grid-chess-back/.env
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db 
+    networks:
+      - chess-net
+
+  chess_frontend:
+    build: ./grid-chess-front
+    container_name: chess_frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - chess_backend
+    networks:
+      - chess-net
+
+volumes:
+  postgres_data:
+
+networks:
+  chess-net:
+    driver: bridge
