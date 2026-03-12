@@ -13,10 +13,15 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Chess Grid - Database Init")
 
+origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+
 # CORS podešavanja - neophodna da bi frontend (React) mogao da priča sa backendom
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
