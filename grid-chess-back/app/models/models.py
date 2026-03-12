@@ -30,10 +30,10 @@ class Level(Base):
     order_index: Mapped[int] = mapped_column(Integer, unique=True, nullable=False)
     instruction: Mapped[str] = mapped_column(Text, nullable=False)
     
-    # DODAJEMO OVO: Početni raspored figura (FEN)
+    # Početni raspored figura (FEN)
     initial_position: Mapped[str] = mapped_column(Text, nullable=False)
     
-    # OSTAJE OVO: Tačan kod/potez koji korisnik treba da unese
+    # Tačan kod/potez koji korisnik treba da unese
     target_code: Mapped[str] = mapped_column(Text, nullable=False)
 
     user_progress: Mapped[list["UserProgress"]] = relationship(back_populates="level")

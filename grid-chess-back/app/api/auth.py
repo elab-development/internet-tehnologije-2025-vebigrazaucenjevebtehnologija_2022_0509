@@ -59,8 +59,7 @@ def register(user_in: user_schema.UserCreate, db: Session = Depends(get_db)):
     try:
         hashed_pw = security.get_password_hash(user_in.password)
         
-        # --- NOVO: NASUMIČAN AVATAR PRI REGISTRACIJI ---
-        # Koristimo listu seed-ova koja se poklapa sa tvojim Profile.tsx
+        # --- NASUMIČAN AVATAR PRI REGISTRACIJI ---
         starter_avatars = ['Felix', 'Aneka', 'Jack', 'Cali', 'Buddy', 'Milo', 'Leo']
         random_avatar = random.choice(starter_avatars)
         
