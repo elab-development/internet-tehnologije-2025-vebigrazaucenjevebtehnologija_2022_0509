@@ -1,46 +1,115 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import api from '../api/axios';
 import Navbar from '../components/common/Navbar';
 
+interface Ranking {
+  username: string;
+  score: number;
+  avatar_seed: string | null
+}
+
 const Leaderboard: React.FC = () => {
-  const colors = {
-    darkest: '#37353E',
-    dark: '#44444E',
-    accent: '#715A5A',
-    light: '#D3DAD9',
-    chessGreen: '#769656'
+  const [rankings, setRankings] = useState<Ranking[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.get('/leaderboard')
+      .then(res => {
+        setRankings(res.data);
+      })
+      .catch(err => {
+        console.error("Greška pri učitavanju rang liste:", err);
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  const getRankStyle = (index: number) => {
+    if (index === 0) return { color: '#ffd700', fontSize: '1.2em' }; // Zlato
+    if (index === 1) return { color: '#c0c0c0', fontSize: '1.1em' }; // Srebro
+    if (index === 2) return { color: '#cd7f32', fontSize: '1.05em' }; // Bronza
+    return { color: '#fff' };
   };
 
   return (
-    <div style={{ backgroundColor: colors.darkest, minHeight: '100vh', color: colors.light }}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#262421', color: 'white' }}>
       <Navbar />
       
-      <div style={{ 
-        display: 'flex', 
-        flexDirection: 'column', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '80vh',
-        textAlign: 'center',
-        padding: '0 20px'
-      }}>
-        <div style={{ fontSize: '80px', marginBottom: '20px' }}>🏆</div>
-        <h1 style={{ fontSize: '2.5rem', marginBottom: '10px' }}>Rang Lista</h1>
-        <h2 style={{ color: colors.chessGreen, fontWeight: 'normal', opacity: 0.8 }}>
-          Stranica je trenutno u pripremi...
-        </h2>
-        
-        <div style={{ 
-          marginTop: '30px', 
-          padding: '20px', 
-          border: `1px dashed ${colors.accent}`, 
-          borderRadius: '10px',
-          maxWidth: '400px'
-        }}>
-          <p style={{ fontSize: '14px', lineHeight: '1.6', opacity: 0.7 }}>
-            Ovde će se uskoro nalaziti najbolji rešavači šahovskih problema. 
-            Vrati se uskoro da proveriš svoje mesto na tabeli!
-          </p>
+      <div style={{ maxWidth: '800px', margin: '40px auto', padding: '0 20px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+          <h1 style={{ color: '#81b64c', fontSize: '2.5rem', marginBottom: '10px' }}>Leaderboard</h1>
+          <p style={{ color: '#bababa' }}>Najbolji šahovski programeri zajednice</p>
         </div>
+
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '50px' }}>Učitavanje rang liste...</div>
+        ) : (
+          <div style={{ 
+            backgroundColor: '#312e2b', 
+            borderRadius: '12px', 
+            overflow: 'hidden', 
+            boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
+            border: '1px solid #3d3a37'
+          }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ backgroundColor: '#2b2926', color: '#81b64c', textAlign: 'left' }}>
+                  <th style={{ padding: '20px' }}>Rang</th>
+                  <th style={{ padding: '20px' }}>Korisnik</th>
+                  <th style={{ padding: '20px', textAlign: 'right' }}>Rešeni nivoi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rankings.length > 0 ? (
+                  rankings.map((user, index) => (
+                    <tr 
+                      key={user.username} 
+                      style={{ 
+                        borderBottom: '1px solid #3d3a37',
+                        backgroundColor: index % 2 === 0 ? 'transparent' : '#2d2b28',
+                        transition: 'background 0.2s'
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#383531')}
+                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = index % 2 === 0 ? 'transparent' : '#2d2b28')}
+                    >
+                      <td style={{ padding: '20px', fontWeight: 'bold', ...getRankStyle(index) }}>
+                        {index + 1}. {' '}
+                        {index === 0 && '🥇'}
+                        {index === 1 && '🥈'}
+                        {index === 2 && '🥉'}
+                      </td>
+                      
+                      {/* --- KOLONA SA AVATAROM I IMENOM --- */}
+                      <td style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '15px' }}>
+                        <img 
+                          src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${user.avatar_seed || 'Felix'}`} 
+                          alt="Avatar" 
+                          style={{ 
+                            width: '40px', 
+                            height: '40px', 
+                            borderRadius: '50%', 
+                            border: '2px solid #454341',
+                            backgroundColor: '#262421' 
+                          }}
+                        />
+                        <span style={{ fontWeight: '500' }}>{user.username}</span>
+                      </td>
+
+                      <td style={{ padding: '20px', textAlign: 'right', color: '#81b64c', fontWeight: 'bold', fontSize: '1.1rem' }}>
+                        {user.score}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={3} style={{ padding: '40px', textAlign: 'center', color: '#666' }}>
+                      Još uvek nema podataka. Budi prvi koji će osvojiti vrh!
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );
